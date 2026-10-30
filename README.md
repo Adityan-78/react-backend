@@ -1,102 +1,94 @@
-﻿# Business Operations Management System - Backend
+# Business Operations Management System — FastAPI backend
 
-FastAPI + SQLAlchemy backend for the React dashboard. Every endpoint from the API
-specification is implemented, with JWT authentication and role checks enforced on the server.
+This backend is mapped to the existing SQL Server schema supplied with the project. It must not create, alter, or migrate the SQL Server tables.
+
+## Stack
+
+- FastAPI + Uvicorn
+- SQLAlchemy ORM
+- SQL Server via Microsoft ODBC Driver 18 and PyODBC
+- Pydantic validation
+- JWT authentication
+- bcrypt verification for existing seeded hashes; Argon2 for newly created/reset passwords
 
 ## Project layout
 
-```
+```text
 app/
-  main.py            app setup: CORS, security headers, error handling
-  api/
-    router.py        mounts every module under /api/v1
-    deps.py          DB session, current user, role checks, pagination
-    endpoints/       thin route handlers (one file per module)
-  services/          ALL business rules live here (stock, approvals, workflows)
-  schemas/           Pydantic request/response models + validation
-  models/            SQLAlchemy models (one per table)
-  core/              config, security (JWT + hashing), constants, errors, login throttle
-  db/                engine/session (lazy) and declarative base
-sql/schema_additions.sql   run once on SQL Server (see below)
-scripts/seed.py            creates the 5 roles + a first admin
-tests/                     69 tests (run on in-memory SQLite, no SQL Server needed)
+  main.py
+  api/          routers, dependencies and endpoints
+  core/         configuration, JWT/password security, constants
+  db/           SQLAlchemy base, engine and request sessions
+  models/       mappings to the existing SQL Server tables
+  schemas/      request/response validation
+  services/     business logic and database queries
+scripts/        optional local development seed helper
 ```
 
-Request flow: `endpoint (role check) -> service (business rules, transaction) -> SQLAlchemy -> DB`.
-
-## Run it (Windows PowerShell)
+## Setup (Windows PowerShell)
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-Copy-Item .env.example .env        # then set SECRET_KEY
+Copy-Item .env.example .env
+```
+
+Edit `.env` with the actual SQL Server connection string and a unique `SECRET_KEY`. Never commit `.env`.
+
+Start from the `backend` project root:
+
+```powershell
 uvicorn app.main:app --reload
 ```
 
-Docs: http://127.0.0.1:8000/docs (disabled when `ENVIRONMENT=production`).
+Interactive API docs: `http://127.0.0.1:8000/docs`  
+OpenAPI JSON: `http://127.0.0.1:8000/openapi.json`
 
-SQL Server needs the Microsoft **ODBC Driver 18** installed on the machine.
+## Database connection
 
-## Connecting the real database
+`app/core/config.py` loads `DATABASE_URL` from `.env`. `app/db/session.py` creates the SQLAlchemy engine and per-request sessions. Endpoints receive a session through `DbSession`; services use that session to query SQL Server.
 
-1. Put the real connection string in `.env` as `DATABASE_URL` (the default is a dummy value).
-2. Run `sql/schema_additions.sql` once. The API needs a few things that are not in the
-   11-table reference yet:
+Example URL (replace every placeholder):
 
-   | Addition | Why |
-   |---|---|
-   | `Sales_Order_Item` table | orders can hold several products |
-   | `Inventory.reorder_level` | low-stock alerts |
-   | `is_active` on `Users`, `Employee`, `Customer` | soft delete instead of removing rows |
-   | `Purchase_Request.rejection_reason` | "reject and record the reason" |
-   | the 5 role rows | role names must be exactly `admin, manager, sales, inventory, employee` |
+```env
+DATABASE_URL=mssql+pyodbc://USERNAME:PASSWORD@SERVER:1433/B3A-S7-T2?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+```
 
-3. Create the first administrator: `python -m scripts.seed --email you@company.com`
-   (asks for the password; nothing is hard-coded).
+URL-encode special characters in the password. Use the actual server/instance and authentication method configured by your SQL Server administrator.
 
-Quick local try-out without SQL Server: set `DATABASE_URL=sqlite:///./dev.db` and run
-`python -m scripts.seed --create-tables --email admin@example.com`.
+## Schema compatibility rules
 
-## Roles and access
+The backend maps the supplied schema; it does not redesign it:
 
-`admin`, `manager`, `sales`, `inventory`, `employee`. Permissions are defined once in
-`app/core/constants.py` (class `Perm`) and mirror the "Access" column of the spec.
+- `Users.IsActive` is `VARCHAR(3)` (`Yes` / `No`). The Python model exposes `User.is_active` as a Boolean-style property.
+- Employee active status is derived from its linked Users row; Employee has no active column.
+- Customer has no active column; customer soft-delete/deactivation is not exposed.
+- Product has `is_active BIT` and this remains supported.
+- Inventory has no `reorder_level`. The low-stock threshold is an application setting (`LOW_STOCK_THRESHOLD`, default `10`), not a database field.
+- Sales_Order is a header-only table. It has no product lines. Sales order endpoints store customer/date/status/total/notes only and do not deduct inventory.
+- Purchase_Request has no `rejection_reason`. Rejecting a request updates the existing status fields and item approval metadata; no reason is persisted.
+- Role checks use the exact role names in the supplied Role data: `Administrator`, `Manager`, `Sales Executive`, `Inventory Executive`, `Employee`.
 
-## Business rules built in
+**Do not execute `schema_additions.sql`, run Alembic migrations, or use `Base.metadata.create_all()` against the SQL Server database.** The `02_Users.sql` seed script includes `DROP TABLE`; do not rerun it against a database with existing user data. The already-approved `Users.IsActive` addition should be managed separately by the database owner and is not performed by this application.
 
-- **Stock never goes negative.** Stock is changed with one conditional `UPDATE ... WHERE qty >= n`,
-  so two people acting at once cannot overdraw it.
-- **Orders:** the server calculates the total. Stock is checked when an order is created, deducted
-  when it is **Confirmed** (all lines or nothing), and returned if a Confirmed order is cancelled.
-  Workflow: Pending -> Confirmed -> Shipped -> Delivered; Shipped/Delivered orders can't be cancelled.
-- **Tasks:** "Overdue" is calculated from the due date (never stored, so it is always correct).
-  Employees update their own tasks; only managers can re-open a completed one.
-- **Purchase requests:** approval is for the whole request. Approve/reject locks it; a rejection needs
-  a reason. After approval it moves In Progress -> Completed -> Closed, and completing can
-  optionally add the ordered quantities to stock (`receive_stock: true`).
-- **Users:** soft delete only; an admin can't deactivate or demote themselves, and the last active
-  admin can't be removed.
+## Authentication flow
 
-## Security notes
+1. React posts email/password to `/api/v1/auth/login`.
+2. `auth_service.py` fetches the user from SQL Server and verifies the stored password hash.
+3. A login is rejected unless `Users.IsActive = 'Yes'`.
+4. The API returns a JWT.
+5. Protected requests send `Authorization: Bearer <token>`.
+6. `app/api/deps.py` validates the token, reloads the user and role from SQL Server, and enforces role permissions.
 
-- Passwords: Argon2 hashes; never returned by any endpoint; strength rule on create/reset.
-- JWT holds only the user id. The role is read from the database on every request, so access changes
-  and deactivations take effect immediately.
-- Login: same error for wrong password/unknown email, equal timing, and lockout after
-  5 failed attempts (in-memory - move to Redis if you run several workers).
-- `SECRET_KEY` must be 32+ random characters when `ENVIRONMENT=production` or the app refuses to start.
-- All inputs validated by Pydantic; list endpoints are paginated (max 100); database constraint errors
-  return a clean 409 without leaking SQL.
+## Roles
+
+The role strings are the exact values stored in `dbo.Role.role_name`: Administrator, Manager, Sales Executive, Inventory Executive and Employee. Permission groups are centralized in `app/core/constants.py`.
+
+## Security / Git
+
+Commit `.env.example`, not `.env`. Do not commit database backups, real data exports, SQL Server credentials, private keys/certificates, or seed dumps containing real personal data or password hashes. `.gitignore` excludes common local secrets and generated files.
 
 ## Tests
 
-```powershell
-pytest
-```
-
-## Notes
-
-- URL prefix is `/api/v1` (as in the original scaffold). `GET /api/v1/dashboard/summary` keeps its old
-  response shape; `GET /api/v1/admin/users` was replaced by `GET /api/v1/users`.
-- The old demo accounts and mock data were removed - login now uses the database.
+The original scaffold tests were written for the previous proposed schema (including Sales_Order_Item and Inventory.reorder_level). They must be updated to the header-only Sales_Order and actual schema contract before being treated as a valid regression suite. Compile check: `python -m compileall app`.

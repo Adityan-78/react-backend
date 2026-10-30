@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 
 from fastapi import APIRouter, Depends, status
 
@@ -31,13 +31,13 @@ def get_order(order_id: int, db: DbSession):
 
 @router.post("", response_model=OrderOut, status_code=status.HTTP_201_CREATED, dependencies=[create])
 def create_order(data: OrderCreate, db: DbSession):
-    """Create an order. Stock is checked now and deducted when it is confirmed."""
+    """Create a sales-order header. The supplied database has no order-line table, so stock is not changed by this endpoint."""
     return order_service.create_order(db, data)
 
 
 @router.put("/{order_id}", response_model=OrderOut, dependencies=[create])
 def update_order(order_id: int, data: OrderUpdate, db: DbSession):
-    """Edit a Pending order (notes, date, or replace its lines)."""
+    """Edit a Pending order (notes, date or total amount)."""
     return order_service.update_order(db, order_id, data)
 
 
@@ -49,5 +49,5 @@ def update_status(order_id: int, data: OrderStatusUpdate, db: DbSession):
 
 @router.put("/{order_id}/cancel", response_model=OrderOut, dependencies=[change_status])
 def cancel_order(order_id: int, db: DbSession):
-    """Cancel a Pending/Confirmed order (confirmed stock is returned)."""
+    """Cancel a Pending/Confirmed order. Inventory is managed separately."""
     return order_service.cancel_order(db, order_id)

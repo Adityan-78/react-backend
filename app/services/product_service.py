@@ -45,7 +45,6 @@ def create_product(db: Session, data: ProductCreate) -> Product:
         Inventory(
             product_id=product.product_id,
             quantity_in_stock=data.initial_stock,
-            reorder_level=data.reorder_level,
         )
     )
     db.commit()

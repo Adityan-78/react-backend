@@ -1,4 +1,4 @@
-﻿"""Application settings, loaded from environment variables / the .env file.
+"""Application settings, loaded from environment variables / the .env file.
 
 Nothing secret should ever be hard-coded here. The defaults below are
 development-only placeholders so the app can boot on a fresh checkout.
@@ -27,6 +27,8 @@ class Settings(BaseSettings):
         "?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
     )
     sql_echo: bool = False
+    # Application-level threshold; no Inventory column is added.
+    low_stock_threshold: int = 10
 
     # --- CORS: one origin or a comma separated list -------------------------
     frontend_origin: str = "http://localhost:5173"

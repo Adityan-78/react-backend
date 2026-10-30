@@ -37,7 +37,7 @@ def list_employees(
     if department:
         stmt = stmt.where(like(Employee.department, department))
     if is_active is not None:
-        stmt = stmt.where(Employee.is_active == is_active)
+        stmt = stmt.where(User.is_active == is_active)
     if search:
         stmt = stmt.where(
             like(User.name, search) | like(User.email, search)
@@ -72,9 +72,3 @@ def update_employee(db: Session, employee_id: int, data: EmployeeUpdate) -> Empl
     db.commit()
     return get_employee(db, emp.employee_id)
 
-
-def deactivate_employee(db: Session, employee_id: int) -> None:
-    """Soft delete - tasks, issues and approvals still reference this person."""
-    emp = get_employee(db, employee_id)
-    emp.is_active = False
-    db.commit()

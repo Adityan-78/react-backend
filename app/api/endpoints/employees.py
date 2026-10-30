@@ -1,4 +1,4 @@
-﻿from typing import Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
@@ -45,9 +45,3 @@ def create_employee(data: EmployeeCreate, db: DbSession):
 def update_employee(employee_id: int, data: EmployeeUpdate, db: DbSession):
     return employee_service.update_employee(db, employee_id, data)
 
-
-@router.delete("/{employee_id}", status_code=204, dependencies=[admin])
-def deactivate_employee(employee_id: int, db: DbSession):
-    """Soft delete: the profile is deactivated, not removed."""
-    employee_service.deactivate_employee(db, employee_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

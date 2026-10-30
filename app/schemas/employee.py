@@ -31,4 +31,3 @@ class EmployeeUpdate(BaseModel):
     department: str | None = Field(default=None, max_length=100)
     phone: str | None = Field(default=None, max_length=20)
     hire_date: date | None = None
-    is_active: bool | None = None

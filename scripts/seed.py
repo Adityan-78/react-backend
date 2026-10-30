@@ -6,8 +6,7 @@ Usage (from the project root):
 
     python -m scripts.seed --create-tables ...
         -> also runs create_all(). Use that ONLY for a throw-away local
-           database such as SQLite (DATABASE_URL=sqlite:///./dev.db).
-           For SQL Server run sql/schema_additions.sql instead.
+           SQLite database. It is deliberately blocked for SQL Server.
 """
 import argparse
 import getpass
@@ -45,8 +44,14 @@ def main() -> int:
         print(f"Invalid password: {exc}")
         return 1
 
+    engine = get_engine()
+    # This helper inserts role/user rows, so restrict the entire script to a
+    # throw-away SQLite database. It must never mutate the shared SQL Server DB.
+    if engine.dialect.name != "sqlite":
+        print("scripts.seed is restricted to local SQLite databases; no SQL Server data was changed.")
+        return 2
     if args.create_tables:
-        Base.metadata.create_all(get_engine())
+        Base.metadata.create_all(engine)
 
     with _session_factory()() as db:
         # Roles: add whichever are missing.

@@ -1,4 +1,4 @@
-﻿"""Aggregated numbers for the role-specific dashboards.
+"""Aggregated numbers for the role-specific dashboards.
 
 Everything here uses COUNT/SUM ... GROUP BY so the database does the work and
 we only ship small result sets back - no loading whole tables into Python.
@@ -9,6 +9,7 @@ from sqlalchemy import func, select, true
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.constants import ApprovalStatus, IssueStatus, OrderStatus, Roles, TaskStatus
+from app.core.config import settings
 from app.models import (
     Customer, CustomerTask, Inventory, OperationalIssue, Product,
     PurchaseRequest, Role, SalesOrder, User,
@@ -74,7 +75,7 @@ def _purchase_summary(db: Session) -> dict:
 
 
 def _low_stock_filter():
-    return (Product.is_active == true()) & (Inventory.quantity_in_stock <= Inventory.reorder_level)
+    return (Product.is_active == true()) & (Inventory.quantity_in_stock <= settings.low_stock_threshold)
 
 
 def _low_stock_count(db: Session) -> int:
@@ -90,7 +91,7 @@ def _stock_summary(db: Session) -> dict:
     urgent = db.execute(
         select(
             Product.product_id, Product.name,
-            Inventory.quantity_in_stock, Inventory.reorder_level,
+            Inventory.quantity_in_stock,
         )
         .join(Product, Product.product_id == Inventory.product_id)
         .where(_low_stock_filter())
@@ -103,7 +104,7 @@ def _stock_summary(db: Session) -> dict:
         "low_stock_items": [
             {
                 "product_id": r.product_id, "product_name": r.name,
-                "quantity_in_stock": r.quantity_in_stock, "reorder_level": r.reorder_level,
+                "quantity_in_stock": r.quantity_in_stock, "reorder_level": settings.low_stock_threshold,
             }
             for r in urgent
         ],
@@ -140,10 +141,9 @@ def sales_dashboard(db: Session) -> dict:
         .order_by(SalesOrder.order_date.desc(), SalesOrder.order_id.desc())
         .limit(5)
     ).all()
-    active_customers = db.scalar(
-        select(func.count()).select_from(Customer).where(Customer.is_active == true())
-    ) or 0
     total_customers = db.scalar(select(func.count()).select_from(Customer)) or 0
+    # Customer has no active flag in the supplied schema; all stored customers count.
+    active_customers = total_customers
     return {
         "orders": _order_summary(db),
         "customers": {"total": total_customers, "active": active_customers},

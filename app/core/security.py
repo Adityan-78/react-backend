@@ -1,4 +1,4 @@
-﻿"""Password hashing and JWT helpers.
+"""Password hashing and JWT helpers.
 
 This module knows nothing about the database or FastAPI dependencies; the
 "who is the current user" logic lives in app/api/deps.py.
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
+import bcrypt
 
 from app.core.config import settings
 from app.core.errors import unauthorized
@@ -29,6 +30,8 @@ def hash_password(plain: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
+        if hashed.startswith(("$2a$", "$2b$", "$2y$")):
+            return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
         return password_hasher.verify(plain, hashed)
     except Exception:  # malformed hash in the DB should mean "no", not a 500
         return False

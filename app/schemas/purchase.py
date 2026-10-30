@@ -59,10 +59,6 @@ class PRUpdate(BaseModel):
     _unique = field_validator("items")(_unique_products)
 
 
-class PRRejectIn(BaseModel):
-    reason: str = Field(min_length=3, max_length=500)
-
-
 class PRStatusUpdate(BaseModel):
     status: Literal["Completed", "Closed"]
     # When completing a request, optionally add the ordered quantities to stock.
@@ -76,6 +72,5 @@ class PROut(ORMModel):
     request_date: date
     status: str
     approval_status: str
-    rejection_reason: str | None = None
     total_estimated: Decimal
     items: list[PRItemOut]

@@ -187,19 +187,17 @@ def approve(db: Session, pr_id: int, manager: Employee) -> PurchaseRequest:
 
     pr.approval_status = ApprovalStatus.APPROVED
     pr.status = PRStatus.IN_PROGRESS
-    pr.rejection_reason = None
     _stamp_items(pr, ApprovalStatus.APPROVED, manager)
     db.commit()
     return get_request(db, pr_id)
 
 
-def reject(db: Session, pr_id: int, reason: str, manager: Employee) -> PurchaseRequest:
+def reject(db: Session, pr_id: int, manager: Employee) -> PurchaseRequest:
     pr = get_request(db, pr_id)
     _require_open_for_edit(pr)
 
     pr.approval_status = ApprovalStatus.REJECTED
     pr.status = PRStatus.CLOSED
-    pr.rejection_reason = reason.strip()
     _stamp_items(pr, ApprovalStatus.REJECTED, manager)
     db.commit()
     return get_request(db, pr_id)

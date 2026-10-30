@@ -47,7 +47,7 @@ def add_stock(db: Session, product_id: int, quantity: int) -> None:
         )
     )
     if result.rowcount == 0:
-        db.add(Inventory(product_id=product_id, quantity_in_stock=quantity, reorder_level=0))
+        db.add(Inventory(product_id=product_id, quantity_in_stock=quantity))
         db.flush()
 
 
@@ -69,7 +69,7 @@ def get_inventory(db: Session, product_id: int) -> Inventory:
     if inv is None:
         # Product exists but has no stock row yet -> create it with zero stock.
         _ensure_product(db, product_id)
-        db.add(Inventory(product_id=product_id, quantity_in_stock=0, reorder_level=0))
+        db.add(Inventory(product_id=product_id, quantity_in_stock=0))
         db.commit()
         return get_inventory(db, product_id)
     return inv
@@ -86,17 +86,19 @@ def list_inventory(
     if search:
         stmt = stmt.where(like(Product.name, search))
     if low_only:
-        stmt = stmt.where(Inventory.quantity_in_stock <= Inventory.reorder_level)
+        from app.core.config import settings
+        stmt = stmt.where(Inventory.quantity_in_stock <= settings.low_stock_threshold)
     return paginate(db, stmt, params)
 
 
 def list_low_stock(db: Session, params: PageParams) -> dict[str, Any]:
     """Active products at or below their reorder level, most urgent first."""
+    from app.core.config import settings
     stmt = (
         select(Inventory).options(*_LOAD).join(Product)
         .where(
             Product.is_active == true(),
-            Inventory.quantity_in_stock <= Inventory.reorder_level,
+            Inventory.quantity_in_stock <= settings.low_stock_threshold,
         )
         .order_by(Inventory.quantity_in_stock, Product.name)
     )
@@ -108,8 +110,6 @@ def set_inventory(db: Session, product_id: int, data: InventoryUpdate) -> Invent
     inv = get_inventory(db, product_id)
     if data.quantity_in_stock is not None:
         inv.quantity_in_stock = data.quantity_in_stock
-    if data.reorder_level is not None:
-        inv.reorder_level = data.reorder_level
     inv.last_updated = today()
     db.commit()
     return get_inventory(db, product_id)

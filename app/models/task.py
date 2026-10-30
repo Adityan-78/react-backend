@@ -16,7 +16,7 @@ class CustomerTask(Base):
     task_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     assigned_to: Mapped[int] = mapped_column(ForeignKey("Employee.employee_id"), nullable=False)
     assigned_by: Mapped[int] = mapped_column(ForeignKey("Employee.employee_id"), nullable=False)
-    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default=TaskStatus.PENDING,

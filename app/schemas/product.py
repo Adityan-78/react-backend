@@ -17,7 +17,6 @@ class ProductCreate(BaseModel):
     unit_measure: str | None = Field(default=None, max_length=30)
     # A product always gets an inventory row; these seed it.
     initial_stock: int = Field(default=0, ge=0)
-    reorder_level: int = Field(default=0, ge=0)
 
 
 class ProductUpdate(BaseModel):

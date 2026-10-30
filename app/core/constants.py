@@ -6,11 +6,11 @@ see inventory") is changed in exactly one place.
 
 
 class Roles:
-    ADMIN = "admin"
-    MANAGER = "manager"
-    SALES = "sales"
-    INVENTORY = "inventory"
-    EMPLOYEE = "employee"
+    ADMIN = "Administrator"
+    MANAGER = "Manager"
+    SALES = "Sales Executive"
+    INVENTORY = "Inventory Executive"
+    EMPLOYEE = "Employee"
 
     ALL = (ADMIN, MANAGER, SALES, INVENTORY, EMPLOYEE)
 

@@ -26,8 +26,6 @@ class PurchaseRequest(Base):
         String(30), nullable=False, default=ApprovalStatus.PENDING,
         server_default=text(f"'{ApprovalStatus.PENDING}'"),
     )
-    # Filled in when a manager rejects the request (see schema_additions.sql).
-    rejection_reason: Mapped[str | None] = mapped_column(String(500))
 
     requester: Mapped[Employee] = relationship(Employee)
     items: Mapped[list["PurchaseRequestItem"]] = relationship(

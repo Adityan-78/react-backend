@@ -1,4 +1,4 @@
-﻿"""Purchase requests, their items, and the approve / reject workflow.
+"""Purchase requests, their items, and the approve / reject workflow.
 
 Two routers live here because the item routes sit under two different URL
 prefixes (/purchase-requests/... and /purchase-request-items/...).
@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.constants import Perm, Roles
 from app.schemas.common import Page
 from app.schemas.purchase import (
-    PRCreate, PRItemIn, PRItemOut, PRItemUpdate, PROut, PRRejectIn,
+    PRCreate, PRItemIn, PRItemOut, PRItemUpdate, PROut,
     PRStatusUpdate, PRUpdate,
 )
 from app.services import purchase_service
@@ -85,8 +85,9 @@ def approve_request(pr_id: int, manager: CurrentEmployee, db: DbSession):
 
 
 @router.put("/{pr_id}/reject", response_model=PROut, dependencies=[decide])
-def reject_request(pr_id: int, data: PRRejectIn, manager: CurrentEmployee, db: DbSession):
-    return purchase_service.reject(db, pr_id, data.reason, manager)
+def reject_request(pr_id: int, manager: CurrentEmployee, db: DbSession):
+    """Reject a request. The existing schema has no rejection-reason column."""
+    return purchase_service.reject(db, pr_id, manager)
 
 
 @router.put("/{pr_id}/status", response_model=PROut, dependencies=[fulfil])

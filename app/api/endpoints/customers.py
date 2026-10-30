@@ -1,6 +1,6 @@
-﻿from typing import Annotated
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import DbSession, Paging, require_roles
 from app.core.constants import Perm
@@ -14,7 +14,6 @@ router = APIRouter()
 view = Depends(require_roles(*Perm.CUSTOMER_VIEW))
 create = Depends(require_roles(*Perm.CUSTOMER_CREATE))
 update = Depends(require_roles(*Perm.CUSTOMER_UPDATE))
-admin = Depends(require_roles(*Perm.ADMIN_ONLY))
 orders_view = Depends(require_roles(*Perm.CUSTOMER_ORDERS))
 
 
@@ -22,9 +21,8 @@ orders_view = Depends(require_roles(*Perm.CUSTOMER_ORDERS))
 def list_customers(
     db: DbSession, params: Paging,
     search: Annotated[str | None, Query(max_length=100)] = None,
-    include_inactive: bool = False,
 ):
-    return customer_service.list_customers(db, params, search, include_inactive)
+    return customer_service.list_customers(db, params, search)
 
 
 @router.get("/{customer_id}/orders", response_model=Page[OrderOut], dependencies=[orders_view])
@@ -47,9 +45,3 @@ def create_customer(data: CustomerCreate, db: DbSession):
 def update_customer(customer_id: int, data: CustomerUpdate, db: DbSession):
     return customer_service.update_customer(db, customer_id, data)
 
-
-@router.delete("/{customer_id}", status_code=204, dependencies=[admin])
-def deactivate_customer(customer_id: int, db: DbSession):
-    """Soft delete: past orders stay linked to the customer."""
-    customer_service.deactivate_customer(db, customer_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

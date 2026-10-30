@@ -1,4 +1,4 @@
-﻿from typing import Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
@@ -27,7 +27,7 @@ def list_inventory(
 # Static path first - see the note in products.py.
 @router.get("/low-stock", response_model=Page[InventoryOut], dependencies=[low_view])
 def low_stock(db: DbSession, params: Paging):
-    """Products at or below their reorder level, lowest stock first."""
+    """Products at or below the configured application-level low-stock threshold."""
     return inventory_service.list_low_stock(db, params)
 
 
@@ -38,7 +38,7 @@ def get_inventory(product_id: int, db: DbSession):
 
 @router.put("/{product_id}", response_model=InventoryOut, dependencies=[manage])
 def update_inventory(product_id: int, data: InventoryUpdate, db: DbSession):
-    """Set absolute stock / reorder values (e.g. after a stock count)."""
+    """Set the absolute stock quantity (e.g. after a physical stock count)."""
     return inventory_service.set_inventory(db, product_id, data)
 
 
