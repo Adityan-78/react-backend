@@ -5,7 +5,7 @@ pwdlib[argon2]
 email-validator
 pydantic-settings
 sqlalchemy
-psycopg[binary]
+pyodbc
 alembic
 pytest
 httpx
