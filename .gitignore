@@ -1,34 +1,91 @@
-# Python
+﻿# ==========================================
+# ENVIRONMENT VARIABLES & SECRETS
+# ==========================================
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Allow example environment files
+!.env.example
+!**/.env.example
+
+
+# ==========================================
+# PYTHON / FASTAPI BACKEND
+# ==========================================
 .venv/
 venv/
+**/.venv/
+**/venv/
+
 __pycache__/
+**/__pycache__/
 *.py[cod]
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
 
-# Secrets / environment
-.env
-.env.*
-!.env.example
+*.egg-info/
+dist/
+build/
 
-# Local databases and data exports
-*.db
-*.sqlite
-*.sqlite3
-*.bak
-*.mdf
-*.ldf
 
-# Logs
-*.log
+# ==========================================
+# REACT / VITE FRONTEND
+# ==========================================
+node_modules/
+**/node_modules/
 
-# IDE
+dist/
+**/dist/
+
+build/
+**/build/
+
+.vite/
+coverage/
+
+
+# ==========================================
+# EDITORS & IDEs
+# ==========================================
 .idea/
 .vscode/
+*.swp
+*.swo
 
-# Certificates / private keys
-*.pem
-*.key
-*.p12
-*.pfx
+
+# ==========================================
+# LOGS & TEMPORARY FILES
+# ==========================================
+*.log
+logs/
+tmp/
+temp/
+
+
+# ==========================================
+# OPERATING SYSTEM FILES
+# ==========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+
+# ==========================================
+# LOCAL DATABASE / BACKUP FILES
+# ==========================================
+*.bak
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+
+
+# ==========================================
+# GIT
+# ==========================================
