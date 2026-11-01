@@ -1,11 +1,11 @@
-﻿fastapi
+fastapi
 uvicorn[standard]
+SQLAlchemy
+pyodbc
 PyJWT
 pwdlib[argon2]
+bcrypt
 email-validator
 pydantic-settings
-sqlalchemy
-psycopg[binary]
-alembic
-pytest
+pytest>=8.2,<9
 httpx

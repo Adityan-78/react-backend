@@ -18,7 +18,6 @@ class UserOut(ORMModel):
     role_id: int
     role: str = Field(validation_alias="role_name")
     is_active: bool
-    created_at: datetime
 
 
 class UserCreate(BaseModel):

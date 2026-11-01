@@ -32,7 +32,8 @@ class User(Base):
         nullable=False,
         unique=True
     )
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Keep a safe Python attribute while mapping the existing database column.
+    password_hash: Mapped[str] = mapped_column("password", String(255), nullable=False)
 
     # Maps directly to the existing SQL Server BIT column.
     is_active: Mapped[bool] = mapped_column(
@@ -52,6 +53,10 @@ class User(Base):
         back_populates="user",
         uselist=False
     )
+
+    @property
+    def role_name(self) -> str:
+        return self.role.role_name
 
 
 class Employee(Base):

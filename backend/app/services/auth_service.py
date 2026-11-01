@@ -24,7 +24,7 @@ def login(db: Session, email: str, password: str, client_ip: str) -> dict:
     # Always run one password check, even for unknown emails.
     password_ok = verify_password(
         password,
-        user.password if user else DUMMY_HASH
+        user.password_hash if user else DUMMY_HASH
     )
 
     # Generic error for all authentication failures.
